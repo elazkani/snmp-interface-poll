@@ -73,11 +73,15 @@ class SNMPInterfacePoll(parent_SNMPCollector):
 
         for gaugeDesc in gaugesList:
             metricPath, metricValue = gaugeDesc
-            metric = Metric(
-                            metricPath, metricValue,
-                            raw_value=None, timestamp=timestamp
-                            )
-            self.publish_metric(metric)
+            # Fixes devices that return no value
+            try:
+                metric = Metric(
+                                metricPath, metricValue,
+                                raw_value=None, timestamp=timestamp
+                                )
+                self.publish_metric(metric)
+            except AttributeError:
+                continue
 
         for counterDesc in countersList:
             metricPath, metricValue = counterDesc
@@ -91,17 +95,21 @@ class SNMPInterfacePoll(parent_SNMPCollector):
                     value=metricValue,
                     oldUnit='byte',
                     newUnit=unit)
-                    metric = Metric(
-                            metricPathNewUnit,
-                            self.derivative(
-                                            metricPathNewUnit,
-                                            metricValueNewUnit,
-                                            COUNTER_MAX_64BIT
-                                            ),
-                            raw_value=None,
-                            timestamp=timestamp
-                            )
-                    self.publish_metric(metric)
+                    # Fixes devices that return no value
+                    try:
+                        metric = Metric(
+                                metricPathNewUnit,
+                                self.derivative(
+                                                metricPathNewUnit,
+                                                metricValueNewUnit,
+                                                COUNTER_MAX_64BIT
+                                                ),
+                                raw_value=None,
+                                timestamp=timestamp
+                                )
+                        self.publish_metric(metric)
+                    except AttributeError:
+                        continue
             else:
             # Graphite's derivitive has no counter reset detection, so use the collector class method instead.
 		self.log.info(metricPath, metricValue)
